@@ -8,6 +8,5 @@ data class SequenceProperties(
     var timestamp_bits: UByte,
     var custom_epoch: Instant,
     var micros_ten_power: UByte,
-    var node_id: UShort,
-    var backoff_cooldown_start_ns: UInt
+    var node_id: UShort
 );
