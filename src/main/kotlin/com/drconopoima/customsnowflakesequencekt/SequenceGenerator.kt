@@ -13,8 +13,13 @@ public class SequenceGenerator (
         ) {
     var current_window_initial_timestamp_nanos: Long = System.nanoTime();
     var now_timestamp_millis = System.currentTimeMillis();
-    var current_window_updated_timestamp_nanos: Long = this.current_window_initial_timestamp_nanos;
     var sequence: UShort = (0).toUShort();
+    var max_sequence: UShort = Math.pow((2).toDouble(),this.sequence_bits.toDouble()).toInt().toUShort();
+    var timestamp_causality_incremental: UInt = (0).toUInt()
+    var micros_power_adjustment_factor: Int = (Math.pow((10).toDouble(),this.micros_ten_power.toDouble()).toInt())*1_000
+    var current_window_updated_timestamp_nanos: Long = System.nanoTime()
+    var last_timestamp: UInt = ((this.current_window_updated_timestamp_nanos - this.current_window_initial_timestamp_nanos).toInt()/this.micros_power_adjustment_factor).toUInt()
+    var current_timestamp: UInt = this.last_timestamp
     constructor( properties: SequenceProperties ) : this(
             unused_bits = properties.unused_bits,
             timestamp_bits = properties.timestamp_bits,
@@ -45,7 +50,14 @@ public class SequenceGenerator (
         if ( (this.unused_bits+this.sequence_bits+this.node_id_bits+this.timestamp_bits) != (64).toUInt()) {
             return Either.Left(IllegalArgumentException("SequenceGeneratorGenerateIDError: Number of bits per generated ID needs to be exactly 64. Improperly specified bit components."))
         }
-        return Either.Right(0.toUInt())
+        if (this.sequence == this.max_sequence) {
+            // TODO: when possible change for a version to wait next causality window (the provided micros-ten-power).
+            // for now, it needs to be wasted a full millisecond because the Thread.sleep() accepts Int millis
+            this.wait_next_millis_window()
+        }
+
+
+        return Either.Right(this.current_timestamp)
     }
     fun expired_millis_window() : Boolean {
         if (System.currentTimeMillis() != this.now_timestamp_millis) {

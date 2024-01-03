@@ -38,6 +38,7 @@ class SnowflakeSequenceCli : CliktCommand() {
         System.out.println("Got custom-epoch: '${sequence_generator.custom_epoch}'")
         System.out.println("Got node-id: '${sequence_generator.node_id}'")
         System.out.println("Got micros-ten-power: '${sequence_generator.micros_ten_power}'")
+        System.out.println("Got max-sequence: '${sequence_generator.max_sequence}'")
         // System.out.println("Expired millis window: '${sequence_generator.expired_millis_window()}'")
         // sequence_generator.wait_next_millis_window()
         // System.out.println("Expired millis window: '${sequence_generator.expired_millis_window()}'")
