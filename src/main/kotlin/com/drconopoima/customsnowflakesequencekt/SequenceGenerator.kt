@@ -11,14 +11,16 @@ public class SequenceGenerator (
             var micros_ten_power: UByte,
             var node_id: UShort
         ) {
+    var now_systemtime_millis = System.currentTimeMillis();
     var current_window_initial_timestamp_nanos: Long = System.nanoTime();
-    var now_timestamp_millis = System.currentTimeMillis();
+    var micros_power_adjustment_factor: Int = (Math.pow((10).toDouble(),this.micros_ten_power.toDouble()).toInt())*1_000;
     var sequence: UShort = (0).toUShort();
-    var max_sequence: UShort = Math.pow((2).toDouble(),this.sequence_bits.toDouble()).toInt().toUShort();
-    var timestamp_causality_incremental: UInt = (0).toUInt()
-    var micros_power_adjustment_factor: Int = (Math.pow((10).toDouble(),this.micros_ten_power.toDouble()).toInt())*1_000
+    var max_sequence: UShort = (Math.pow((2).toDouble(),this.sequence_bits.toDouble()).toInt()-1).toUShort();
+    var timestamp_causality_incremental: UInt = (0).toUInt();
+    var now_systemtime_from_custom_epoch_millis = this.now_systemtime_millis - this.custom_epoch.toEpochMilli()
+    var current_systemtime_nanos: Long = (this.now_systemtime_from_custom_epoch_millis.toDouble() * Math.pow((10).toDouble(),(6).toDouble())).toLong();
     var current_window_updated_timestamp_nanos: Long = System.nanoTime()
-    var last_timestamp: UInt = ((this.current_window_updated_timestamp_nanos - this.current_window_initial_timestamp_nanos).toInt()/this.micros_power_adjustment_factor).toUInt()
+    var last_timestamp: UInt = ((this.current_systemtime_nanos+(this.current_window_updated_timestamp_nanos - this.current_window_initial_timestamp_nanos).toInt())/this.micros_power_adjustment_factor).toUInt()
     var current_timestamp: UInt = this.last_timestamp
     constructor( properties: SequenceProperties ) : this(
             unused_bits = properties.unused_bits,
@@ -55,33 +57,55 @@ public class SequenceGenerator (
             // for now, it needs to be wasted a full millisecond because the Thread.sleep() accepts Int millis
             this.wait_next_millis_window()
         }
-
-
+        if (!this.expired_systemtime_millis_window()) {
+            this.update_current_timestamp_unchecked()
+        } else {
+            this.new_systemtime_millis()
+        }
         return Either.Right(this.current_timestamp)
     }
-    fun expired_millis_window() : Boolean {
-        if (System.currentTimeMillis() != this.now_timestamp_millis) {
+    fun update_current_timestamp_unchecked() {
+        this.current_window_updated_timestamp_nanos = System.nanoTime();
+        this.current_timestamp = ((this.current_systemtime_nanos+(this.current_window_updated_timestamp_nanos - this.current_window_initial_timestamp_nanos).toInt())/this.micros_power_adjustment_factor).toUInt()
+        return
+    }
+    fun new_systemtime_millis() {
+        var timestamp_millis_now = System.currentTimeMillis()
+        if (this.now_systemtime_millis != timestamp_millis_now) {
+            this.current_window_initial_timestamp_nanos = System.nanoTime();
+            this.now_systemtime_millis = timestamp_millis_now;
+            this.now_systemtime_from_custom_epoch_millis = this.now_systemtime_millis - this.custom_epoch.toEpochMilli()
+            this.current_systemtime_nanos = (this.now_systemtime_from_custom_epoch_millis.toDouble() * Math.pow((10).toDouble(),(6).toDouble())).toLong();
+            this.current_window_updated_timestamp_nanos = System.nanoTime();
+            this.last_timestamp = ((this.current_systemtime_nanos+(this.current_window_updated_timestamp_nanos - this.current_window_initial_timestamp_nanos).toInt())/this.micros_power_adjustment_factor).toUInt()
+            this.current_timestamp = this.last_timestamp
+            this.sequence = (0).toUShort();
+            this.timestamp_causality_incremental = (0).toUInt();
+        }
+        return
+    }
+    fun expired_systemtime_millis_window() : Boolean {
+        if (System.currentTimeMillis() != this.now_systemtime_millis) {
             return true
         }
         return false
     }
     fun wait_next_millis_window() {
-        var current_timestamp_millis: Long = this.now_timestamp_millis;
         var current_timestamp: Long = System.currentTimeMillis();
         var sleep_for: Long = 1
-        while ( current_timestamp <= current_timestamp_millis ) {
+        while ( current_timestamp <= this.now_systemtime_millis ) {
             Thread.sleep(sleep_for);
             current_timestamp = System.currentTimeMillis();
             // Double the cooldown wait period (exponential backoff). Useful if there was large clock backwards movement
             sleep_for*=2;
         }
+        this.new_systemtime_millis()
         return
     }
     fun wait_current_millis_window() {
-        var current_timestamp_millis: Long = this.now_timestamp_millis;
         var current_timestamp: Long = System.currentTimeMillis();
         var sleep_for: Long = 1
-        while (current_timestamp < current_timestamp_millis) {
+        while (current_timestamp < this.now_systemtime_millis) {
             Thread.sleep(sleep_for);
             current_timestamp = System.currentTimeMillis();
             // Double the cooldown wait period (exponential backoff). Useful if there was large clock backwards movement

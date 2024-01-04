@@ -48,6 +48,7 @@ class SnowflakeSequenceCli : CliktCommand() {
         // sequence_generator.sequence_bits=(17).toUByte();
         // sequence_generator.node_id_bits=(17).toUByte();
         // sequence_generator.timestamp_bits=(64).toUByte();
+        Thread.sleep(1);
         System.out.println("Generated ID: ${sequence_generator.generate_id()}");
     }
 }

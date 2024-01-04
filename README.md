@@ -25,7 +25,7 @@ Got timestamp bits (derived): '42'
 Got custom-epoch: '2023-01-01T00:00:00Z'
 Got node-id: '0'
 Got micros-ten-power: '3'
-Got max-sequence: '4096'
+Got max-sequence: '4095'
 Generated ID: Either.Right(…)
 ```
 
@@ -46,6 +46,6 @@ Got timestamp bits (derived): '41'
 Got custom-epoch: '2022-01-01T00:00:00Z'
 Got node-id: '22'
 Got micros-ten-power: '0'
-Got max-sequence: '8192'
+Got max-sequence: '8191'
 Generated ID: Either.Right(…)
 ```
