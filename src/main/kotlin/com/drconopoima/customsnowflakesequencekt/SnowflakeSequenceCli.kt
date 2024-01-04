@@ -19,12 +19,12 @@ class SnowflakeSequenceCli : CliktCommand() {
         var unused_bits: UByte = unused_bits.toUByte()
         var node_id_bits: UByte = node_id_bits.toUByte()
         var sequence_bits: UByte = sequence_bits.toUByte()
-        var timestamp_bits: UInt = (64).toUByte()-sequence_bits-node_id_bits-unused_bits
+        var timestamp_bits: UByte = ((64).toUByte()-sequence_bits-node_id_bits-unused_bits).toUByte()
         var sequence_properties = SequenceProperties(
             unused_bits,
             node_id_bits,
             sequence_bits,
-            timestamp_bits.toUByte(),
+            timestamp_bits,
             Instant.parse(custom_epoch),
             micros_ten_power.toUByte(),
             node_id.toUShort()
@@ -48,7 +48,6 @@ class SnowflakeSequenceCli : CliktCommand() {
         // sequence_generator.sequence_bits=(17).toUByte();
         // sequence_generator.node_id_bits=(17).toUByte();
         // sequence_generator.timestamp_bits=(64).toUByte();
-        Thread.sleep(1);
         System.out.println("Generated ID: ${sequence_generator.generate_id()}");
     }
 }
