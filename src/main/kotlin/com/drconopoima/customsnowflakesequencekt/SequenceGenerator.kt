@@ -3,145 +3,139 @@ import arrow.core.Either
 import java.time.Instant
 
 public class SequenceGenerator(
-    var unused_bits: UByte,
-    var timestamp_bits: UByte,
-    var node_id_bits: UByte,
-    var sequence_bits: UByte,
-    var custom_epoch: Instant,
-    var micros_ten_power: UByte,
-    var node_id: UShort,
+    var unusedBits: UByte,
+    var timestampBits: UByte,
+    var nodeIdBits: UByte,
+    var sequenceBits: UByte,
+    var customEpoch: Instant,
+    var microsTenPower: UByte,
+    val nodeId: UShort,
 ) {
-    var now_systemtime_millis = System.currentTimeMillis()
-    var current_window_initial_timestamp_nanos: Long = System.nanoTime()
-    var micros_power_adjustment_factor: Int = (Math.pow((10).toDouble(), this.micros_ten_power.toDouble()).toInt()) * 1_000
+    var nowSystemMillis = System.currentTimeMillis()
+    var currentWindowInitialTimestampNanos: Long = System.nanoTime()
+    var microsPowerFactor: Int = (Math.pow((10).toDouble(), this.microsTenPower.toDouble()).toInt()) * 1_000
     var sequence: UShort = (0).toUShort()
-    var max_sequence: UShort = (Math.pow((2).toDouble(), this.sequence_bits.toDouble()).toLong() - 1).toUShort()
-    var timestamp_causality_incremental: UShort = (0).toUShort()
-    var now_systemtime_from_custom_epoch_millis = this.now_systemtime_millis - this.custom_epoch.toEpochMilli()
-    var current_systemtime_nanos: Long = (this.now_systemtime_from_custom_epoch_millis.toDouble() * Math.pow((10).toDouble(), (6).toDouble())).toLong()
-    var current_window_updated_timestamp_nanos: Long = System.nanoTime()
-    var last_timestamp: ULong = (((this.current_systemtime_nanos + (this.current_window_updated_timestamp_nanos - this.current_window_initial_timestamp_nanos)).toDouble()) / this.micros_power_adjustment_factor).toULong()
-    var current_timestamp: ULong = this.last_timestamp
+    var maxSequence: UShort = (Math.pow((2).toDouble(), this.sequenceBits.toDouble()).toLong() - 1).toUShort()
+    var nowSystemCustomEpochNanos = ((this.nowSystemMillis - this.customEpoch.toEpochMilli()) * 1_000_000).toLong()
+    var currentWindowUpdatedTimestampNanos: Long = System.nanoTime()
+    var lastTimestamp: ULong = (((this.nowSystemCustomEpochNanos + (this.currentWindowUpdatedTimestampNanos - this.currentWindowInitialTimestampNanos)).toDouble()) / this.microsPowerFactor).toULong()
+    var currentTimestamp: ULong = this.lastTimestamp
     constructor(properties: SequenceProperties) : this(
-        unused_bits = properties.unused_bits,
-        timestamp_bits = properties.timestamp_bits,
-        node_id_bits = properties.node_id_bits,
-        sequence_bits = properties.sequence_bits,
-        custom_epoch = properties.custom_epoch,
-        micros_ten_power = properties.micros_ten_power,
-        node_id = properties.node_id,
+        unusedBits = properties.unusedBits,
+        timestampBits = properties.timestampBits,
+        nodeIdBits = properties.nodeIdBits,
+        sequenceBits = properties.sequenceBits,
+        customEpoch = properties.customEpoch,
+        microsTenPower = properties.microsTenPower,
+        nodeId = properties.nodeId,
     ) {
     }
 
-    fun generate_id(): Either<Exception, ULong> {
+    fun getId(): Either<Exception, ULong> {
         // Guard clauses
-        if (this.unused_bits >= (8).toUByte()) {
+        if (this.unusedBits >= (8).toUByte()) {
             return Either.Left(
                 IllegalArgumentException(
-                    "SequenceGeneratorGenerateIDError: Number of bits for property 'unused_bits' should be smaller than 8.",
+                    "SequenceGeneratorGenerateIDError: Number of bits for property 'unusedBits' should be smaller than 8.",
                 ),
             )
         }
-        if (this.node_id_bits == (0).toUByte()) {
+        if (this.nodeIdBits == (0).toUByte()) {
             return Either.Left(
                 IllegalArgumentException(
-                    "SequenceGeneratorGenerateIDError: Number of bits for property 'node_id_bits' should be greater or equal than 1.",
+                    "SequenceGeneratorGenerateIDError: Number of bits for property 'nodeIdBits' should be greater or equal than 1.",
                 ),
             )
         }
-        if (this.node_id_bits > (16).toUByte()) {
+        if (this.nodeIdBits > (16).toUByte()) {
             return Either.Left(
                 IllegalArgumentException(
-                    "SequenceGeneratorGenerateIDError: Number of bits for property 'node_id_bits' should be smaller or equal than 16.",
+                    "SequenceGeneratorGenerateIDError: Number of bits for property 'nodeIdBits' should be smaller or equal than 16.",
                 ),
             )
         }
-        if (this.sequence_bits == (0).toUByte()) {
+        if (this.sequenceBits == (0).toUByte()) {
             return Either.Left(
                 IllegalArgumentException(
-                    "SequenceGeneratorGenerateIDError: Number of bits for property 'sequence_bits' should be greater or equal than 1.",
+                    "SequenceGeneratorGenerateIDError: Number of bits for property 'sequenceBits' should be greater or equal than 1.",
                 ),
             )
         }
-        if (this.sequence_bits > (16).toUByte()) {
+        if (this.sequenceBits > (16).toUByte()) {
             return Either.Left(
                 IllegalArgumentException(
-                    "SequenceGeneratorGenerateIDError: Number of bits for property 'sequence_bits' should be smaller or equal than 16.",
+                    "SequenceGeneratorGenerateIDError: Number of bits for property 'sequenceBits' should be smaller or equal than 16.",
                 ),
             )
         }
-        if ((this.unused_bits + this.sequence_bits + this.node_id_bits + this.timestamp_bits) != (64).toUInt()) {
+        if ((this.unusedBits + this.sequenceBits + this.nodeIdBits + this.timestampBits) != (64).toUInt()) {
             return Either.Left(
                 IllegalArgumentException(
                     "SequenceGeneratorGenerateIDError: Number of bits per generated ID needs to be exactly 64. Improperly specified bit components.",
                 ),
             )
         }
-        if (this.sequence == this.max_sequence) {
+        if (this.sequence == this.maxSequence) {
             // TODO: when possible change for a version to wait next causality window (the provided micros-ten-power).
             // for now, it needs to be wasted a full millisecond because the Thread.sleep() accepts Long millis
-            this.wait_next_millis_window()
+            this.waitNextSystemMillis()
         }
-        if (!this.expired_systemtime_millis_window()) {
-            this.update_current_timestamp_unchecked()
+        if (!this.isExpiredSystemMillis()) {
+            this.updateCurrentTimestampUnchecked()
         } else {
-            this.new_systemtime_millis()
+            this.initNewSystemMillis()
         }
-        return Either.Right(this.current_timestamp)
+        return Either.Right(this.currentTimestamp)
     }
 
-    fun update_current_timestamp_unchecked() {
-        this.current_window_updated_timestamp_nanos = System.nanoTime()
-        this.current_timestamp = (((this.current_systemtime_nanos + (this.current_window_updated_timestamp_nanos - this.current_window_initial_timestamp_nanos)).toDouble()) / this.micros_power_adjustment_factor).toULong()
+    fun updateCurrentTimestampUnchecked() {
+        this.currentWindowUpdatedTimestampNanos = System.nanoTime()
+        this.currentTimestamp = (((this.nowSystemCustomEpochNanos + (this.currentWindowUpdatedTimestampNanos - this.currentWindowInitialTimestampNanos)).toDouble()) / this.microsPowerFactor).toULong()
         return
     }
 
-    fun new_systemtime_millis() {
-        var timestamp_millis_now = System.currentTimeMillis()
-        if (this.now_systemtime_millis != timestamp_millis_now) {
-            this.current_window_initial_timestamp_nanos = System.nanoTime()
-            this.now_systemtime_millis = timestamp_millis_now
-            this.now_systemtime_from_custom_epoch_millis = this.now_systemtime_millis - this.custom_epoch.toEpochMilli()
-            this.current_systemtime_nanos = (this.now_systemtime_from_custom_epoch_millis.toDouble() * Math.pow((10).toDouble(), (6).toDouble())).toLong()
-            this.current_window_updated_timestamp_nanos = System.nanoTime()
-            var nanos_difference = this.current_window_updated_timestamp_nanos - this.current_window_initial_timestamp_nanos
-            var systemtime_plus_nanos_difference = (this.current_systemtime_nanos + (this.current_window_updated_timestamp_nanos - this.current_window_initial_timestamp_nanos)).toDouble()
-            this.last_timestamp = (((this.current_systemtime_nanos + (this.current_window_updated_timestamp_nanos - this.current_window_initial_timestamp_nanos)).toDouble()) / this.micros_power_adjustment_factor).toULong()
-            this.current_timestamp = this.last_timestamp
+    fun initNewSystemMillis() {
+        var currentTimeMillis = System.currentTimeMillis()
+        if (this.nowSystemMillis != currentTimeMillis) {
+            this.currentWindowInitialTimestampNanos = System.nanoTime()
+            this.nowSystemMillis = currentTimeMillis
+            this.nowSystemCustomEpochNanos = ((this.nowSystemMillis - this.customEpoch.toEpochMilli()) * 1_000_000).toLong()
+            this.currentWindowUpdatedTimestampNanos = System.nanoTime()
+            this.lastTimestamp = (((this.nowSystemCustomEpochNanos + (this.currentWindowUpdatedTimestampNanos - this.currentWindowInitialTimestampNanos)).toDouble()) / this.microsPowerFactor).toULong()
+            this.currentTimestamp = this.lastTimestamp
             this.sequence = (0).toUShort()
-            this.timestamp_causality_incremental = (0).toUShort()
         }
         return
     }
 
-    fun expired_systemtime_millis_window(): Boolean {
-        if (System.currentTimeMillis() != this.now_systemtime_millis) {
+    fun isExpiredSystemMillis(): Boolean {
+        if (System.currentTimeMillis() != this.nowSystemMillis) {
             return true
         }
         return false
     }
 
-    fun wait_next_millis_window() {
-        var current_timestamp: Long = System.currentTimeMillis()
-        var sleep_for: Long = 1
-        while (current_timestamp <= this.now_systemtime_millis) {
-            Thread.sleep(sleep_for)
-            current_timestamp = System.currentTimeMillis()
+    fun waitNextSystemMillis() {
+        var currentTimestamp: Long = System.currentTimeMillis()
+        var sleepFor: Long = 1
+        while (currentTimestamp <= this.nowSystemMillis) {
+            Thread.sleep(sleepFor)
+            currentTimestamp = System.currentTimeMillis()
             // Double the cooldown wait period (exponential backoff). Useful if there was large clock backwards movement
-            sleep_for *= 2
+            sleepFor *= 2
         }
-        this.new_systemtime_millis()
+        this.initNewSystemMillis()
         return
     }
 
-    fun wait_current_millis_window() {
-        var current_timestamp: Long = System.currentTimeMillis()
-        var sleep_for: Long = 1
-        while (current_timestamp < this.now_systemtime_millis) {
-            Thread.sleep(sleep_for)
-            current_timestamp = System.currentTimeMillis()
+    fun waitCurrentSystemMillis() {
+        var currentTimestamp: Long = System.currentTimeMillis()
+        var sleepFor: Long = 1
+        while (currentTimestamp < this.nowSystemMillis) {
+            Thread.sleep(sleepFor)
+            currentTimestamp = System.currentTimeMillis()
             // Double the cooldown wait period (exponential backoff). Useful if there was large clock backwards movement
-            sleep_for *= 2
+            sleepFor *= 2
         }
         return
     }

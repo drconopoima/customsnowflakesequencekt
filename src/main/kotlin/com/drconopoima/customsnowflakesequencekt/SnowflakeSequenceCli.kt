@@ -9,72 +9,72 @@ typealias ErrorResponse = String
 
 class SnowflakeSequenceCli : CliktCommand() {
     val quantity: UInt by option("-q", "--quantity", help = "Amount/Quantity of sequence values requested.").uint().default((1).toUInt())
-    val node_id_bits: UInt by option(
+    val nodeIdBits: UInt by option(
         "-n",
         "--node-id-bits",
         help = "Bits used for storing worker and datacenter information. Default: 0-1023",
     ).uint().default((10).toUInt())
-    val sequence_bits: UInt by option(
+    val sequenceBits: UInt by option(
         "-s",
         "--sequence-bits",
         help = "Bits used for contiguous sequence values. Default: 0-4095",
     ).uint().default((12).toUInt())
-    val custom_epoch: String by option(
+    val customEpoch: String by option(
         "-e",
         "--custom-epoch",
         help = "Custom epoch. Default: '2023-01-01T00:00:00Z'",
     ).default("2023-01-01T00:00:00Z")
-    val node_id: UInt by option(
+    val nodeId: UInt by option(
         "-i",
         "--node-id",
         help = "Numerical identifier for worker and datacenter information. Default: 0",
     ).uint().default((0).toUInt())
-    val unused_bits: UInt by option(
+    val unusedBits: UInt by option(
         "-u",
         "--unused-bits",
         help = "Unused (sign) bits at the left-most of the sequence ID. Default: 0",
     ).uint().default((0).toUInt())
-    val micros_ten_power: UInt by option(
+    val microsTenPower: UInt by option(
         "-m",
         "--micros-ten-power",
         help = "Exponent multiplier base 10 in microseconds for timestamp. Default: 3 (operate in milliseconds)",
     ).uint().default((3).toUInt())
 
     override fun run() {
-        var unused_bits: UByte = unused_bits.toUByte()
-        var node_id_bits: UByte = node_id_bits.toUByte()
-        var sequence_bits: UByte = sequence_bits.toUByte()
-        var timestamp_bits: UByte = ((64).toUByte() - sequence_bits - node_id_bits - unused_bits).toUByte()
-        var sequence_properties =
+        var unusedBits: UByte = unusedBits.toUByte()
+        var nodeIdBits: UByte = nodeIdBits.toUByte()
+        var sequenceBits: UByte = sequenceBits.toUByte()
+        var timestampBits: UByte = ((64).toUByte() - sequenceBits - nodeIdBits - unusedBits).toUByte()
+        var sequenceProperties =
             SequenceProperties(
-                unused_bits,
-                node_id_bits,
-                sequence_bits,
-                timestamp_bits,
-                Instant.parse(custom_epoch),
-                micros_ten_power.toUByte(),
-                node_id.toUShort(),
+                unusedBits,
+                nodeIdBits,
+                sequenceBits,
+                timestampBits,
+                Instant.parse(customEpoch),
+                microsTenPower.toUByte(),
+                nodeId.toUShort(),
             )
-        var sequence_generator: SequenceGenerator = SequenceGenerator(sequence_properties)
+        var sequenceGenerator: SequenceGenerator = SequenceGenerator(sequenceProperties)
         System.out.println("Got quantity: '$quantity'")
-        System.out.println("Got unused-bits: '${sequence_generator.unused_bits}'")
-        System.out.println("Got node-id-bits: '${sequence_generator.node_id_bits}'")
-        System.out.println("Got sequence-bits: '${sequence_generator.sequence_bits}'")
-        System.out.println("Got timestamp bits (derived): '${sequence_generator.timestamp_bits}'")
-        System.out.println("Got custom-epoch: '${sequence_generator.custom_epoch}'")
-        System.out.println("Got node-id: '${sequence_generator.node_id}'")
-        System.out.println("Got micros-ten-power: '${sequence_generator.micros_ten_power}'")
-        System.out.println("Got max-sequence: '${sequence_generator.max_sequence}'")
-        // System.out.println("Expired millis window: '${sequence_generator.expired_millis_window()}'")
-        // sequence_generator.wait_next_millis_window()
-        // System.out.println("Expired millis window: '${sequence_generator.expired_millis_window()}'")
-        // sequence_generator.unused_bits=(8).toUByte();
-        // sequence_generator.sequence_bits=(0).toUByte();
-        // sequence_generator.node_id_bits=(0).toUByte();
-        // sequence_generator.sequence_bits=(17).toUByte();
-        // sequence_generator.node_id_bits=(17).toUByte();
-        // sequence_generator.timestamp_bits=(64).toUByte();
-        System.out.println("Generated ID: ${sequence_generator.generate_id()}")
+        System.out.println("Got unused-bits: '${sequenceGenerator.unusedBits}'")
+        System.out.println("Got node-id-bits: '${sequenceGenerator.nodeIdBits}'")
+        System.out.println("Got sequence-bits: '${sequenceGenerator.sequenceBits}'")
+        System.out.println("Got timestamp bits (derived): '${sequenceGenerator.timestampBits}'")
+        System.out.println("Got custom-epoch: '${sequenceGenerator.customEpoch}'")
+        System.out.println("Got node-id: '${sequenceGenerator.nodeId}'")
+        System.out.println("Got micros-ten-power: '${sequenceGenerator.microsTenPower}'")
+        System.out.println("Got max-sequence: '${sequenceGenerator.maxSequence}'")
+        // System.out.println("Expired millis window: '${sequenceGenerator.isExpiredSystemMillis()}'")
+        // sequenceGenerator.waitNextSystemMillis()
+        // System.out.println("Expired millis window: '${sequenceGenerator.isExpiredSystemMillis()}'")
+        // sequenceGenerator.unusedBits=(8).toUByte();
+        // sequenceGenerator.sequenceBits=(0).toUByte();
+        // sequenceGenerator.nodeIdBits=(0).toUByte();
+        // sequenceGenerator.sequenceBits=(17).toUByte();
+        // sequenceGenerator.nodeIdBits=(17).toUByte();
+        // sequenceGenerator.timestampBits=(64).toUByte();
+        System.out.println("Generated ID: ${sequenceGenerator.getId()}")
     }
 }
 
