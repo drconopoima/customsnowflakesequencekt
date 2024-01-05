@@ -13,13 +13,14 @@ public class SequenceGenerator(
 ) {
     var nowSystemMillis = System.currentTimeMillis()
     var currentWindowInitialTimestampNanos: Long = System.nanoTime()
-    var microsPowerFactor: Int = (Math.pow((10).toDouble(), this.microsTenPower.toDouble()).toInt()) * 1_000
-    var sequence: UShort = (0).toUShort()
-    var maxSequence: UShort = (Math.pow((2).toDouble(), this.sequenceBits.toDouble()).toLong() - 1).toUShort()
+    var microsPowerFactor: Long = (Math.pow((10).toDouble(), this.microsTenPower.toDouble()).toLong()) * 1_000
+    var sequence: UInt = (0).toUInt()
+    var maxSequence: UInt = (Math.pow((2).toDouble(), this.sequenceBits.toDouble()).toLong() - 1).toUInt()
     var nowSystemCustomEpochNanos = ((this.nowSystemMillis - this.customEpoch.toEpochMilli()) * 1_000_000).toLong()
     var currentWindowUpdatedTimestampNanos: Long = System.nanoTime()
     var lastTimestamp: ULong = (((this.nowSystemCustomEpochNanos + (this.currentWindowUpdatedTimestampNanos - this.currentWindowInitialTimestampNanos)).toDouble()) / this.microsPowerFactor).toULong()
     var currentTimestamp: ULong = this.lastTimestamp
+    var idTimestampCache: ULong = ((this.currentTimestamp shl (this.sequenceBits + this.nodeIdBits).toInt()).toULong() or this.nodeId.toULong())
     constructor(properties: SequenceProperties) : this(
         unusedBits = properties.unusedBits,
         timestampBits = properties.timestampBits,
@@ -85,7 +86,13 @@ public class SequenceGenerator(
         } else {
             this.initNewSystemMillis()
         }
-        return Either.Right(this.currentTimestamp)
+        if (this.currentTimestamp != this.lastTimestamp) {
+            this.cacheIdTimestamp()
+        }
+
+        var newId: ULong = (this.idTimestampCache or (this.sequence.toULong() shl this.nodeIdBits.toInt()).toULong())
+        this.sequence += (1).toUInt()
+        return Either.Right(newId)
     }
 
     fun updateCurrentTimestampUnchecked() {
@@ -103,7 +110,6 @@ public class SequenceGenerator(
             this.currentWindowUpdatedTimestampNanos = System.nanoTime()
             this.lastTimestamp = (((this.nowSystemCustomEpochNanos + (this.currentWindowUpdatedTimestampNanos - this.currentWindowInitialTimestampNanos)).toDouble()) / this.microsPowerFactor).toULong()
             this.currentTimestamp = this.lastTimestamp
-            this.sequence = (0).toUShort()
         }
         return
     }
@@ -128,15 +134,10 @@ public class SequenceGenerator(
         return
     }
 
-    fun waitCurrentSystemMillis() {
-        var currentTimestamp: Long = System.currentTimeMillis()
-        var sleepFor: Long = 1
-        while (currentTimestamp < this.nowSystemMillis) {
-            Thread.sleep(sleepFor)
-            currentTimestamp = System.currentTimeMillis()
-            // Double the cooldown wait period (exponential backoff). Useful if there was large clock backwards movement
-            sleepFor *= 2
-        }
-        return
+    fun cacheIdTimestamp() {
+        this.idTimestampCache = (this.currentTimestamp shl (this.sequenceBits + this.nodeIdBits).toInt()).toULong()
+        this.lastTimestamp = this.currentTimestamp
+        this.idTimestampCache = this.idTimestampCache or this.nodeId.toULong()
+        this.sequence = (0).toUInt()
     }
 }

@@ -1,6 +1,7 @@
 package com.drconopoima.customsnowflakesequencekt
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.parameters.options.default
+import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.types.*
 import java.time.Instant
@@ -8,7 +9,7 @@ import java.time.Instant
 typealias ErrorResponse = String
 
 class SnowflakeSequenceCli : CliktCommand() {
-    val quantity: UInt by option("-q", "--quantity", help = "Amount/Quantity of sequence values requested.").uint().default((1).toUInt())
+    val quantity: Int by option("-q", "--quantity", help = "Amount/Quantity of sequence values requested.").int().default((1).toInt())
     val nodeIdBits: UInt by option(
         "-n",
         "--node-id-bits",
@@ -39,8 +40,25 @@ class SnowflakeSequenceCli : CliktCommand() {
         "--micros-ten-power",
         help = "Exponent multiplier base 10 in microseconds for timestamp. Default: 3 (operate in milliseconds)",
     ).uint().default((3).toUInt())
+    val debug by option(
+        "-d",
+        "--debug",
+        help = "Show properties used from defailts or CLI arguments provided",
+    ).flag(
+        "--no-debug",
+        default = false,
+    )
+    val time by option(
+        "-t",
+        "--time",
+        help = "Show properties used from defailts or CLI arguments provided",
+    ).flag(
+        "--no-time",
+        default = false,
+    )
 
     override fun run() {
+        var quantity: Int = quantity
         var unusedBits: UByte = unusedBits.toUByte()
         var nodeIdBits: UByte = nodeIdBits.toUByte()
         var sequenceBits: UByte = sequenceBits.toUByte()
@@ -56,25 +74,39 @@ class SnowflakeSequenceCli : CliktCommand() {
                 nodeId.toUShort(),
             )
         var sequenceGenerator: SequenceGenerator = SequenceGenerator(sequenceProperties)
-        System.out.println("Got quantity: '$quantity'")
-        System.out.println("Got unused-bits: '${sequenceGenerator.unusedBits}'")
-        System.out.println("Got node-id-bits: '${sequenceGenerator.nodeIdBits}'")
-        System.out.println("Got sequence-bits: '${sequenceGenerator.sequenceBits}'")
-        System.out.println("Got timestamp bits (derived): '${sequenceGenerator.timestampBits}'")
-        System.out.println("Got custom-epoch: '${sequenceGenerator.customEpoch}'")
-        System.out.println("Got node-id: '${sequenceGenerator.nodeId}'")
-        System.out.println("Got micros-ten-power: '${sequenceGenerator.microsTenPower}'")
-        System.out.println("Got max-sequence: '${sequenceGenerator.maxSequence}'")
-        // System.out.println("Expired millis window: '${sequenceGenerator.isExpiredSystemMillis()}'")
-        // sequenceGenerator.waitNextSystemMillis()
-        // System.out.println("Expired millis window: '${sequenceGenerator.isExpiredSystemMillis()}'")
-        // sequenceGenerator.unusedBits=(8).toUByte();
-        // sequenceGenerator.sequenceBits=(0).toUByte();
-        // sequenceGenerator.nodeIdBits=(0).toUByte();
-        // sequenceGenerator.sequenceBits=(17).toUByte();
-        // sequenceGenerator.nodeIdBits=(17).toUByte();
-        // sequenceGenerator.timestampBits=(64).toUByte();
-        System.out.println("Generated ID: ${sequenceGenerator.getId()}")
+        if (debug)
+            {
+                System.out.println("Got quantity: '$quantity'")
+                System.out.println("Got unused-bits: '${sequenceGenerator.unusedBits}'")
+                System.out.println("Got node-id-bits: '${sequenceGenerator.nodeIdBits}'")
+                System.out.println("Got sequence-bits: '${sequenceGenerator.sequenceBits}'")
+                System.out.println("Got timestamp bits (derived): '${sequenceGenerator.timestampBits}'")
+                System.out.println("Got custom-epoch: '${sequenceGenerator.customEpoch}'")
+                System.out.println("Got node-id: '${sequenceGenerator.nodeId}'")
+                System.out.println("Got micros-ten-power: '${sequenceGenerator.microsTenPower}'")
+                System.out.println("Got max-sequence: '${sequenceGenerator.maxSequence}'")
+            }
+        var idList = arrayOfNulls<ULong>(quantity);
+        var initialSystemNanosTime: Long = 0
+        var finalSystemNanosTime: Long = 0
+        if (time) {
+            initialSystemNanosTime = System.nanoTime()
+        }
+        for (i: Int in 0 until idList.size) {
+            var newId = sequenceGenerator.getId()
+            idList[i] = newId.fold({ (0).toULong() }, { it })
+        }
+        if (time) {
+            finalSystemNanosTime = System.nanoTime()
+        }
+        for ( id in idList ) {
+            System.out.println("$id")
+        }
+        if (time) {
+            var elapsed: Long = (finalSystemNanosTime - initialSystemNanosTime)
+            var elapsedPerId: Double = elapsed.toDouble() / quantity.toDouble()
+            System.out.println("It took ${elapsed ?: 0} nanoseconds, time per id: ${elapsedPerId ?: 0} ns")
+        }
     }
 }
 
