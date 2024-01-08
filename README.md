@@ -11,7 +11,7 @@ mvn package
 
 ## Run
 
-By default, it will use default values detailed in example below, and output an ID per line per the --quantity parameter 
+By default, it will use default values detailed in example below, and output an ID per line per the --quantity parameter
 
 ```sh
 java -jar ./target/customsnowflakesequencekt-0.1.0.jar --quantity 6

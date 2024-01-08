@@ -74,19 +74,18 @@ class SnowflakeSequenceCli : CliktCommand() {
                 nodeId.toUShort(),
             )
         var sequenceGenerator: SequenceGenerator = SequenceGenerator(sequenceProperties)
-        if (debug)
-            {
-                System.out.println("Got quantity: '$quantity'")
-                System.out.println("Got unused-bits: '${sequenceGenerator.unusedBits}'")
-                System.out.println("Got node-id-bits: '${sequenceGenerator.nodeIdBits}'")
-                System.out.println("Got sequence-bits: '${sequenceGenerator.sequenceBits}'")
-                System.out.println("Got timestamp bits (derived): '${sequenceGenerator.timestampBits}'")
-                System.out.println("Got custom-epoch: '${sequenceGenerator.customEpoch}'")
-                System.out.println("Got node-id: '${sequenceGenerator.nodeId}'")
-                System.out.println("Got micros-ten-power: '${sequenceGenerator.microsTenPower}'")
-                System.out.println("Got max-sequence: '${sequenceGenerator.maxSequence}'")
-            }
-        var idList = arrayOfNulls<ULong>(quantity);
+        if (debug) {
+            System.out.println("Got quantity: '$quantity'")
+            System.out.println("Got unused-bits: '${sequenceGenerator.unusedBits}'")
+            System.out.println("Got node-id-bits: '${sequenceGenerator.nodeIdBits}'")
+            System.out.println("Got sequence-bits: '${sequenceGenerator.sequenceBits}'")
+            System.out.println("Got timestamp bits (derived): '${sequenceGenerator.timestampBits}'")
+            System.out.println("Got custom-epoch: '${sequenceGenerator.customEpoch}'")
+            System.out.println("Got node-id: '${sequenceGenerator.nodeId}'")
+            System.out.println("Got micros-ten-power: '${sequenceGenerator.microsTenPower}'")
+            System.out.println("Got max-sequence: '${sequenceGenerator.maxSequence}'")
+        }
+        var idList = arrayOfNulls<ULong>(quantity)
         var initialSystemNanosTime: Long = 0
         var finalSystemNanosTime: Long = 0
         if (time) {
@@ -99,7 +98,7 @@ class SnowflakeSequenceCli : CliktCommand() {
         if (time) {
             finalSystemNanosTime = System.nanoTime()
         }
-        for ( id in idList ) {
+        for (id in idList) {
             System.out.println("$id")
         }
         if (time) {
